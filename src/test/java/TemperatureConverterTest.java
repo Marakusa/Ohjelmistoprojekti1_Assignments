@@ -23,6 +23,15 @@ class TemperatureConverterTest {
     }
 
     @org.junit.jupiter.api.Test
+    void kelvinToCelsius() {
+        assertEquals(0.0, converter.kelvinToCelsius(273.15), 0.001);
+        assertEquals(100.0, converter.kelvinToCelsius(373.15), 0.001);
+        assertEquals(-273.15, converter.kelvinToCelsius(0), 0.001);
+        assertEquals(-40.0, converter.kelvinToCelsius(233.15), 0.001);
+        assertEquals(20.0, converter.kelvinToCelsius(293.15), 0.001);
+    }
+
+    @org.junit.jupiter.api.Test
     void isExtremeTemperature() {
         // Normal temperatures
         assertFalse(converter.isExtremeTemperature(0));

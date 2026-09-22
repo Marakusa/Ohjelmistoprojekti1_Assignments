@@ -19,6 +19,11 @@ pipeline {
                 bat 'mvn test'
             }
         }
+        stage('Publish Test Results') {
+            steps {
+                junit '**/target/surefire-reports/*.xml'
+            }
+        }
         stage('jacoco') {
             steps {
                 jacoco()

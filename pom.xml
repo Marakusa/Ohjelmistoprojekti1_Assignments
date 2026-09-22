@@ -30,6 +30,7 @@
     </dependencies>
 
     <build>
+        <finalName>temperature_converter</finalName>
         <plugins>
             <!-- JaCoCo Plugin for Code Coverage -->
             <plugin>

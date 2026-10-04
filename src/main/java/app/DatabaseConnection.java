@@ -6,7 +6,8 @@ import java.sql.SQLException;
 
 public class DatabaseConnection {
     //private static final String URL = "jdbc:mariadb://host.docker.internal:3306/temperature_converter_db";
-    private static final String URL = "jdbc:mariadb://localhost:3306/temperature_converter_db";
+    private static final String HOST = System.getenv().getOrDefault("DB_HOST", "localhost");
+    private static final String URL = "jdbc:mariadb://" + HOST + ":3306/temperature_converter_db";
     private static final String USER = "appuser";
     private static final String PASSWORD = "password";
 

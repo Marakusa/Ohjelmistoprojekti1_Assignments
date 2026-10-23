@@ -18,6 +18,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
+import java.util.ResourceBundle;
 
 public class Main extends Application {
 
@@ -26,6 +28,7 @@ public class Main extends Application {
     private final TempRecordDAO recordDAO = new TempRecordDAO();
     private final Map<Integer, String> unitNames = new HashMap<>();
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private ResourceBundle bundle;
 
     private TextField valueField;
     private ComboBox<TemperatureUnit> fromComboBox;
@@ -35,7 +38,9 @@ public class Main extends Application {
 
     @Override
     public void start(Stage stage) {
-        stage.setTitle("Temperature Converter");
+        Locale locale = promptForLanguage();
+        bundle = ResourceBundle.getBundle("MessagesBundle", locale);
+        stage.setTitle(bundle.getString("title"));
 
         GridPane form = new GridPane();
         form.setHgap(10);
@@ -47,14 +52,14 @@ public class Main extends Application {
         toComboBox = new ComboBox<>();
         loadUnits();
 
-        Button convertButton = new Button("Convert & Save");
+        Button convertButton = new Button(bundle.getString("convert"));
         resultLabel = new Label();
 
-        form.add(new Label("Temperature:"), 0, 0);
+        form.add(new Label(bundle.getString("temperature")), 0, 0);
         form.add(valueField, 1, 0);
-        form.add(new Label("From:"), 0, 1);
+        form.add(new Label(bundle.getString("from")), 0, 1);
         form.add(fromComboBox, 1, 1);
-        form.add(new Label("To:"), 0, 2);
+        form.add(new Label(bundle.getString("to")), 0, 2);
         form.add(toComboBox, 1, 2);
         form.add(convertButton, 1, 3);
         form.add(resultLabel, 1, 4);
@@ -65,12 +70,31 @@ public class Main extends Application {
         convertButton.setOnAction(e -> handleConvertAndSave());
         valueField.setOnAction(e -> handleConvertAndSave());
 
-        VBox root = new VBox(15, form, new Label("Saved Records:"), tableView);
+        VBox root = new VBox(15, form, new Label(bundle.getString("savedRecords")), tableView);
         root.setPadding(new Insets(15));
         root.setAlignment(Pos.TOP_LEFT);
 
         stage.setScene(new Scene(root, 600, 550));
         stage.show();
+    }
+
+    private Locale promptForLanguage() {
+        ChoiceDialog<String> dialog = new ChoiceDialog<>("English", "English", "Finnish", "Swedish", "Japanese");
+        dialog.setTitle("Language");
+        dialog.setHeaderText("Select your preferred language");
+        dialog.setContentText("Language:");
+
+        Optional<String> choice = dialog.showAndWait();
+        if (choice.isEmpty()) {
+            return Locale.US;
+        }
+
+        return switch (choice.get()) {
+            case "Finnish" -> Locale.forLanguageTag("fi-FI");
+            case "Swedish" -> Locale.forLanguageTag("sv-SE");
+            case "Japanese" -> Locale.forLanguageTag("ja-JP");
+            default -> Locale.US;
+        };
     }
 
     private void loadUnits() {

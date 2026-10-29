@@ -1,0 +1,62 @@
+---
+# 1. Database Credentials Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mariadb-secret
+
+#default secret for database credentials
+type: Opaque
+stringData:
+  mariadb-root-password: "Test12"
+  mariadb-database: "temperature_converter"
+
+---
+# 2. JavaFX App Deployment
+apiVersion: apps/v1
+kind: Deployment
+# javafx-travel-app-i10n-rtl is a Unique identifier for the deployment, used for managing the deployment lifecycle
+metadata:
+  name: temperature-converter
+spec:
+  # Only one replica of the application will be running at any given time,
+  #ensuring that the application is always available and can handle requests.
+  replicas: 1
+  selector:
+    # The selector defines how the deployment finds which pods to manage. It matches pods with the label "app: javafx-travel-app-i10n-rtl".
+    matchLabels:
+      app: temperature-converter
+  template:
+    metadata:
+      labels:
+        app: temperature-converter
+    spec:
+      containers:
+        - name: javafx-app
+          image: marakusa/temperature-converter:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: DB_HOST
+              value: "host.minikube.internal"
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_NAME
+              value: "time_calculator"
+            - name: DB_USER
+              value: "root"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mariadb-secret
+                  key: mariadb-root-password
+            - name: DISPLAY
+              value: "host.minikube.internal:0.0"
+  # Instructions to run the container inside Minikube:
+  # 1. Start Minikube with the following command:
+  #    minikube start --driver=docker
+  # 2. Use minikube's Docker daemon to build the Docker image:
+  #    minikube image build -t amirdirin/svg-2012-i10n_rtl:latest .
+# 3. Apply the Kubernetes manifests:
+#    kubectl apply -f svg_i10n_rtl.yaml
+#4.# 1. Direct your local Docker CLI to Minikube's daemon
+#& minikube -p minikube docker-env --shell powershell | Invoke-Expression

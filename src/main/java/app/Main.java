@@ -79,7 +79,7 @@ public class Main extends Application {
     }
 
     private Locale promptForLanguage() {
-        ChoiceDialog<String> dialog = new ChoiceDialog<>("English", "English", "Finnish", "Swedish", "Japanese");
+        ChoiceDialog<String> dialog = new ChoiceDialog<>("English", "English", "Finnish", "Swedish", "Japanese", "Arabic");
         dialog.setTitle("Language");
         dialog.setHeaderText("Select your preferred language");
         dialog.setContentText("Language:");
@@ -93,6 +93,7 @@ public class Main extends Application {
             case "Finnish" -> Locale.forLanguageTag("fi-FI");
             case "Swedish" -> Locale.forLanguageTag("sv-SE");
             case "Japanese" -> Locale.forLanguageTag("ja-JP");
+            case "Arabic" -> Locale.forLanguageTag("ar-SA");
             default -> Locale.US;
         };
     }

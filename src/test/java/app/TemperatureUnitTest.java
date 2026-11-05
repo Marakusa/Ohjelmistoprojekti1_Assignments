@@ -17,4 +17,20 @@ public class TemperatureUnitTest {
         TemperatureUnit unit = new TemperatureUnit(2, "Fahrenheit");
         assertEquals("Fahrenheit", unit.toString());
     }
+
+    @Test
+    public void testTwoArgConstructor_keyNameDefaultsToUnitName() {
+        assertEquals("Celsius", new TemperatureUnit(1, "Celsius").getKeyName());
+    }
+
+    @Test
+    public void testKeyName_isKeptWhenGiven() {
+        assertEquals("celsius", new TemperatureUnit(1, "Celsius", "celsius").getKeyName());
+    }
+
+    @Test
+    public void testKeyName_nullOrBlankFallsBackToUnitName() {
+        assertEquals("Kelvin", new TemperatureUnit(3, "Kelvin", null).getKeyName());
+        assertEquals("Kelvin", new TemperatureUnit(3, "Kelvin", "  ").getKeyName());
+    }
 }

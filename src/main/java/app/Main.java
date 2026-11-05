@@ -14,7 +14,6 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import java.sql.SQLException;
-import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -24,11 +23,10 @@ import java.util.ResourceBundle;
 
 public class Main extends Application {
 
-    private final TemperatureConverter converter = new TemperatureConverter();
+    private final ConversionService service = new ConversionService();
     private final TemperatureUnitDAO unitDAO = new TemperatureUnitDAO();
     private final TempRecordDAO recordDAO = new TempRecordDAO();
     private final Map<Integer, String> unitNames = new HashMap<>();
-    private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private ResourceBundle bundle;
 
     private TextField valueField;
@@ -75,7 +73,7 @@ public class Main extends Application {
         VBox root = new VBox(15, form, new Label(bundle.getString("savedRecords")), tableView);
         root.setPadding(new Insets(15));
         root.setAlignment(Pos.TOP_LEFT);
-        root.setNodeOrientation(locale.getLanguage().equals("ar")
+        root.setNodeOrientation(ConversionService.isRightToLeft(locale)
                 ? NodeOrientation.RIGHT_TO_LEFT
                 : NodeOrientation.LEFT_TO_RIGHT);
 
@@ -90,31 +88,19 @@ public class Main extends Application {
         dialog.setContentText("Language:");
 
         Optional<String> choice = dialog.showAndWait();
-        if (choice.isEmpty()) {
-            return Locale.US;
-        }
-
-        return switch (choice.get()) {
-            case "Finnish" -> Locale.forLanguageTag("fi-FI");
-            case "Swedish" -> Locale.forLanguageTag("sv-SE");
-            case "Japanese" -> Locale.forLanguageTag("ja-JP");
-            case "Arabic" -> Locale.forLanguageTag("ar-SA");
-            default -> Locale.US;
-        };
+        return ConversionService.localeForChoice(choice.orElse(null));
     }
 
     private void loadUnits() {
         try {
             List<TemperatureUnit> units = unitDAO.getUnitsForLanguage(locale.getLanguage());
             unitNames.clear();
-            for (TemperatureUnit unit : units) {
-                unitNames.put(unit.getId(), unit.getUnitName());
-            }
+            unitNames.putAll(ConversionService.buildUnitNames(units));
             fromComboBox.getItems().setAll(units);
             toComboBox.getItems().setAll(units);
             if (!units.isEmpty()) {
                 fromComboBox.getSelectionModel().selectFirst();
-                toComboBox.getSelectionModel().select(units.size() > 1 ? 1 : 0);
+                toComboBox.getSelectionModel().select(ConversionService.defaultToIndex(units.size()));
             }
         } catch (SQLException e) {
             showError("Failed to load temperature units: " + e.getMessage());
@@ -123,35 +109,19 @@ public class Main extends Application {
 
     private void handleConvertAndSave() {
         try {
-            double value = Double.parseDouble(valueField.getText().trim().replace(',', '.'));
             TemperatureUnit from = fromComboBox.getValue();
             TemperatureUnit to = toComboBox.getValue();
 
-            if (from == null || to == null) {
-                showError("Please select both units.");
-                return;
-            }
+            ConversionService.ConversionResult conversion =
+                    service.convert(valueField.getText(), from, to);
+            resultLabel.setText(conversion.displayText());
 
-            String fromKey = from.getKeyName();
-            String toKey = to.getKeyName();
-
-            double result = converter.convert(value, fromKey, toKey);
-            double celsius = converter.toCelsius(value, fromKey);
-
-            String text = String.format(Locale.ROOT, "%.2f %s = %.2f %s",
-                    value, from.getUnitName(), result, to.getUnitName());
-            if (converter.isExtremeTemperature(celsius)) {
-                text += "  (extreme temperature!)";
-            }
-            resultLabel.setText(text);
-
-            recordDAO.save(new TempRecord(value, result, from.getId(), to.getId(), locale.getLanguage()));
+            service.save(conversion, from, to, locale.getLanguage());
             loadRecords();
             valueField.clear();
 
-        } catch (NumberFormatException ex) {
-            showError("Temperature must be a number.");
         } catch (IllegalArgumentException ex) {
+            // also covers NumberFormatException; the service supplies the message
             showError(ex.getMessage());
         } catch (SQLException ex) {
             showError("Database error: " + ex.getMessage());
@@ -169,18 +139,18 @@ public class Main extends Application {
 
         TableColumn<TempRecord, String> fromCol = new TableColumn<>("From");
         fromCol.setCellValueFactory(data -> new SimpleStringProperty(
-                unitNames.getOrDefault(data.getValue().getFromUnitId(), "?")));
+                ConversionService.unitNameFor(unitNames, data.getValue().getFromUnitId())));
 
         TableColumn<TempRecord, String> toCol = new TableColumn<>("To");
         toCol.setCellValueFactory(data -> new SimpleStringProperty(
-                unitNames.getOrDefault(data.getValue().getToUnitId(), "?")));
+                ConversionService.unitNameFor(unitNames, data.getValue().getToUnitId())));
 
         TableColumn<TempRecord, Number> resultCol = new TableColumn<>("Result");
         resultCol.setCellValueFactory(data -> new SimpleDoubleProperty(data.getValue().getResultValue()));
 
         TableColumn<TempRecord, String> timeCol = new TableColumn<>("Time");
         timeCol.setCellValueFactory(data -> new SimpleStringProperty(
-                data.getValue().getCreatedAt() == null ? "" : data.getValue().getCreatedAt().format(TIME_FORMAT)));
+                ConversionService.formatTimestamp(data.getValue().getCreatedAt())));
         timeCol.setPrefWidth(150);
 
         table.getColumns().addAll(idCol, inputCol, fromCol, toCol, resultCol, timeCol);

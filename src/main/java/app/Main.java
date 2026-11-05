@@ -36,10 +36,11 @@ public class Main extends Application {
     private ComboBox<TemperatureUnit> toComboBox;
     private Label resultLabel;
     private TableView<TempRecord> tableView;
+    private Locale locale;
 
     @Override
     public void start(Stage stage) {
-        Locale locale = promptForLanguage();
+        locale = promptForLanguage();
         bundle = ResourceBundle.getBundle("MessagesBundle", locale);
         stage.setTitle(bundle.getString("title"));
 
@@ -104,12 +105,13 @@ public class Main extends Application {
 
     private void loadUnits() {
         try {
-            List<TemperatureUnit> units = unitDAO.getAllUnits();
+            List<TemperatureUnit> units = unitDAO.getUnitsForLanguage(locale.getLanguage());
+            unitNames.clear();
             for (TemperatureUnit unit : units) {
                 unitNames.put(unit.getId(), unit.getUnitName());
             }
-            fromComboBox.getItems().addAll(units);
-            toComboBox.getItems().addAll(units);
+            fromComboBox.getItems().setAll(units);
+            toComboBox.getItems().setAll(units);
             if (!units.isEmpty()) {
                 fromComboBox.getSelectionModel().selectFirst();
                 toComboBox.getSelectionModel().select(units.size() > 1 ? 1 : 0);
@@ -140,8 +142,7 @@ public class Main extends Application {
             }
             resultLabel.setText(text);
 
-            recordDAO.save(new TempRecord(value, result, from.getId(), to.getId()));
-
+            recordDAO.save(new TempRecord(value, result, from.getId(), to.getId(), locale.getLanguage()));
             loadRecords();
             valueField.clear();
 

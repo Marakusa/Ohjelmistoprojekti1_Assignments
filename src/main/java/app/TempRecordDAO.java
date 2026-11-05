@@ -11,37 +11,36 @@ import java.util.List;
 public class TempRecordDAO {
 
     public void save(TempRecord record) throws SQLException {
-        String sql = "INSERT INTO temp_record (input_value, result_value, from_unit_id, to_unit_id) " +
-                "VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO temp_record (input_value, result_value, from_unit_id, to_unit_id, language_code) " +
+                "VALUES (?, ?, ?, ?, ?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-
             ps.setDouble(1, record.getInputValue());
             ps.setDouble(2, record.getResultValue());
             ps.setInt(3, record.getFromUnitId());
             ps.setInt(4, record.getToUnitId());
+            ps.setString(5, record.getLanguageCode() == null || record.getLanguageCode().isBlank() ? "en" : record.getLanguageCode());
             ps.executeUpdate();
         }
     }
 
     public List<TempRecord> getAllRecords() throws SQLException {
         List<TempRecord> records = new ArrayList<>();
-        String sql = "SELECT * FROM temp_record ORDER BY created_at DESC";
+        String sql = "SELECT * FROM temp_record ORDER BY created_at DESC LIMIT 5";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-
             while (rs.next()) {
-                LocalDateTime createdAt = rs.getTimestamp("created_at").toLocalDateTime();
                 records.add(new TempRecord(
                         rs.getInt("id"),
                         rs.getDouble("input_value"),
                         rs.getDouble("result_value"),
                         rs.getInt("from_unit_id"),
                         rs.getInt("to_unit_id"),
-                        createdAt
+                        rs.getString("language_code"),
+                        rs.getTimestamp("created_at").toLocalDateTime()
                 ));
             }
         }

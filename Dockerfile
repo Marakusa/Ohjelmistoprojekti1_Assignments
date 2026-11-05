@@ -1,10 +1,14 @@
 FROM maven:3.9.6-eclipse-temurin-21
 WORKDIR /app
 
-# GUI libraries needed by JavaFX (the base image is headless)
-RUN apt-get update && apt-get install -y \
+# GUI libraries needed by JavaFX (the base image is headless) + fonts for Japanese/Arabic
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libx11-6 libxext6 libxrender1 libxtst6 libxi6 libgtk-3-0 mesa-utils wget unzip \
+    fontconfig fonts-takao-gothic fonts-noto-core \
+    && fc-cache -f \
     && rm -rf /var/lib/apt/lists/*
+
+ENV LANG=C.UTF-8
 
 # JavaFX SDK (modules are loaded from --module-path at run time)
 RUN mkdir -p /javafx-sdk \

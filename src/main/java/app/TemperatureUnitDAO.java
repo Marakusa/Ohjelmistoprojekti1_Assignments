@@ -16,7 +16,7 @@ public class TemperatureUnitDAO {
 
     public List<TemperatureUnit> getUnitsForLanguage(String languageCode) throws SQLException {
         List<TemperatureUnit> units = new ArrayList<>();
-        String sql = "SELECT u.id, COALESCE(t.name, en_t.name, u.default_name) AS unit_name " +
+        String sql = "SELECT u.id, u.key_name, COALESCE(t.name, en_t.name, u.default_name) AS unit_name " +
                 "FROM unit u " +
                 "LEFT JOIN unit_translation t ON t.unit_id = u.id AND t.lang_code = ? " +
                 "LEFT JOIN unit_translation en_t ON en_t.unit_id = u.id AND en_t.lang_code = 'en' " +
@@ -27,7 +27,11 @@ public class TemperatureUnitDAO {
             ps.setString(1, languageCode == null || languageCode.isBlank() ? "en" : languageCode);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    units.add(new TemperatureUnit(rs.getInt("id"), rs.getString("unit_name")));
+                    units.add(new TemperatureUnit(
+                            rs.getInt("id"),
+                            rs.getString("unit_name"),
+                            rs.getString("key_name")
+                    ));
                 }
             }
         }

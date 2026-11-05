@@ -132,8 +132,11 @@ public class Main extends Application {
                 return;
             }
 
-            double result = converter.convert(value, from.getUnitName(), to.getUnitName());
-            double celsius = converter.toCelsius(value, from.getUnitName());
+            String fromKey = from.getKeyName();
+            String toKey = to.getKeyName();
+
+            double result = converter.convert(value, fromKey, toKey);
+            double celsius = converter.toCelsius(value, fromKey);
 
             String text = String.format(Locale.ROOT, "%.2f %s = %.2f %s",
                     value, from.getUnitName(), result, to.getUnitName());

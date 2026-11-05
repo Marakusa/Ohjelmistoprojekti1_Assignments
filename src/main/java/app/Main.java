@@ -5,6 +5,7 @@ import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.geometry.Insets;
+import javafx.geometry.NodeOrientation;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -73,6 +74,9 @@ public class Main extends Application {
         VBox root = new VBox(15, form, new Label(bundle.getString("savedRecords")), tableView);
         root.setPadding(new Insets(15));
         root.setAlignment(Pos.TOP_LEFT);
+        root.setNodeOrientation(locale.getLanguage().equals("ar")
+                ? NodeOrientation.RIGHT_TO_LEFT
+                : NodeOrientation.LEFT_TO_RIGHT);
 
         stage.setScene(new Scene(root, 600, 550));
         stage.show();

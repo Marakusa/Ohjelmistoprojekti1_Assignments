@@ -10,6 +10,26 @@ import java.util.Locale;
 
 public class TemperatureUnitDAO {
 
+    public static String resolveLocalizedName(String requestedLanguageCode,
+                                              String translatedName,
+                                              String englishName,
+                                              String defaultName) {
+        String normalized = requestedLanguageCode == null || requestedLanguageCode.isBlank()
+                ? "en"
+                : requestedLanguageCode.trim().toLowerCase(Locale.ROOT);
+
+        if (translatedName != null && !translatedName.isBlank()) {
+            return translatedName;
+        }
+        if (englishName != null && !englishName.isBlank()) {
+            return englishName;
+        }
+        if (defaultName != null && !defaultName.isBlank()) {
+            return defaultName;
+        }
+        return "en".equals(normalized) ? "" : "";
+    }
+
     public List<TemperatureUnit> getAllUnits() throws SQLException {
         return getUnitsForLanguage(Locale.getDefault().getLanguage());
     }

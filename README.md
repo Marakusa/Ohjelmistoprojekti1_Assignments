@@ -86,39 +86,57 @@ The code is split into small classes with one responsibility each, all in packag
 | `TempRecordDAO` | `save(record)` and `getAllRecords()` (newest first). |
 | `DatabaseConnection` | Creates JDBC connections via `DriverManager`. |
 
-### 3.2 Database design
+### 3.2 Database design and localization strategy
 
-Two tables, linked by foreign keys. The schema is reconstructed from the DAO queries; keep it in the repository as `schema.sql`, which the tests refer to:
+The project uses the recommended DB localization approach: a translation table. Static UI strings such as button labels, titles, and prompts are kept in `MessagesBundle_*.properties`, while unit names and descriptions shown in the JavaFX dropdowns and result text are loaded from the MariaDB database in the selected language. The database therefore contains a language-neutral base table and a separate translation table that stores localized rows by `unit_id` and `lang_code`.
 
 ```sql
-CREATE DATABASE IF NOT EXISTS temperature_converter_db;
-USE temperature_converter_db;
+CREATE TABLE IF NOT EXISTS unit (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    key_name VARCHAR(64) NOT NULL UNIQUE,
+    default_name VARCHAR(128) NOT NULL,
+    description VARCHAR(255) NOT NULL
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS temperature_unit (
-    id        INT AUTO_INCREMENT PRIMARY KEY,
-    unit_name VARCHAR(20) NOT NULL UNIQUE
-);
-
-INSERT IGNORE INTO temperature_unit (unit_name)
-VALUES ('Celsius'), ('Fahrenheit'), ('Kelvin');
+CREATE TABLE IF NOT EXISTS unit_translation (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    unit_id INT NOT NULL,
+    lang_code VARCHAR(10) NOT NULL,
+    name VARCHAR(128) NOT NULL,
+    description VARCHAR(255) NOT NULL,
+    UNIQUE(unit_id, lang_code),
+    FOREIGN KEY (unit_id) REFERENCES unit(id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS temp_record (
-    id           INT AUTO_INCREMENT PRIMARY KEY,
-    input_value  DOUBLE NOT NULL,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    input_value DOUBLE NOT NULL,
     result_value DOUBLE NOT NULL,
     from_unit_id INT NOT NULL,
-    to_unit_id   INT NOT NULL,
-    created_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (from_unit_id) REFERENCES temperature_unit(id),
-    FOREIGN KEY (to_unit_id)   REFERENCES temperature_unit(id)
-);
-
-CREATE USER IF NOT EXISTS 'appuser'@'%' IDENTIFIED BY 'password';
-GRANT SELECT, INSERT, DELETE ON temperature_converter_db.* TO 'appuser'@'%';
-FLUSH PRIVILEGES;
+    to_unit_id INT NOT NULL,
+    language_code VARCHAR(10) NOT NULL DEFAULT 'en',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (from_unit_id) REFERENCES unit(id),
+    FOREIGN KEY (to_unit_id) REFERENCES unit(id)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-Units live in their own table (normalised) so a record stores only a unit **id**, and the GUI maps ids back to names for display.
+The app selects the localized names using a query similar to:
+
+```sql
+SELECT u.id, u.key_name,
+       COALESCE(t.name, en_t.name, u.default_name) AS unit_name
+FROM unit u
+LEFT JOIN unit_translation t
+    ON t.unit_id = u.id AND t.lang_code = ?
+LEFT JOIN unit_translation en_t
+    ON en_t.unit_id = u.id AND en_t.lang_code = 'en'
+ORDER BY u.id;
+```
+
+This design is chosen because it is the cleanest production-style solution: the base unit records remain stable, the translated names are kept in one place for each language, and adding a new language requires only new rows in `unit_translation`, not a new schema or a large set of NULL columns. It also makes English fallback simple and keeps the data model normalized, so the converted values and the stored unit ids stay correct even when the selected language changes. In short, the translation table gives us scalability, maintainability, and reliable multilingual behavior without duplicating non-text data or breaking the conversion logic.
+
+---
 
 ### 3.3 Key decisions
 

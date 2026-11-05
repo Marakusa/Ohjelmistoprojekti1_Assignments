@@ -55,8 +55,8 @@ spec:
   # 1. Start Minikube with the following command:
   #    minikube start --driver=docker
   # 2. Use minikube's Docker daemon to build the Docker image:
-  #    minikube image build -t amirdirin/svg-2012-i10n_rtl:latest .
+  #    minikube image build -t marakusa/temperature-converter:latest .
 # 3. Apply the Kubernetes manifests:
-#    kubectl apply -f svg_i10n_rtl.yaml
+#    kubectl apply -f temperature-converter.yaml
 #4.# 1. Direct your local Docker CLI to Minikube's daemon
 #& minikube -p minikube docker-env --shell powershell | Invoke-Expression
